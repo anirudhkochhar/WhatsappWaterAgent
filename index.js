@@ -44,10 +44,12 @@ client.on('qr', (qr) => {
   qrcode.generate(qr, { small: true });
 });
 
-client.on('ready', () => {
+client.on('ready', async () => {
   console.log('[whatsapp] Client ready. Bot is running.');
   escalation.init(send);
   scheduler.init(send);
+  const data = require('./tracker').getStatus();
+  await send(`✅ Water bot started. Reminders every ${process.env.REMINDER_INTERVAL_MINUTES || 60} min. Today: ${data.glasses}/${data.goal} glasses so far.`);
 });
 
 client.on('authenticated', () => {

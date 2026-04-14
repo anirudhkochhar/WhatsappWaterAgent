@@ -55,12 +55,12 @@ function init(sendFn) {
 
   // Reminder cron: every N minutes
   const reminderCron = `*/${intervalMin} * * * *`;
-  cron.schedule(reminderCron, startReminder, { timezone: 'local' });
+  cron.schedule(reminderCron, startReminder);
 
   // Daily summary cron
   const { hour, minute } = parseTime(process.env.SUMMARY_TIME || '20:00');
   const summaryCron = `${minute} ${hour} * * *`;
-  cron.schedule(summaryCron, startDailySummary, { timezone: 'local' });
+  cron.schedule(summaryCron, startDailySummary);
 
   console.log(`[scheduler] reminders every ${intervalMin} min | summary at ${process.env.SUMMARY_TIME || '20:00'}`);
 }
