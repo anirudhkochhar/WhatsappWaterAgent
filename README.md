@@ -1,14 +1,19 @@
-# WhatsApp Water Bot
+# Water Reminder Bot
 
-A WhatsApp bot that texts you on a schedule to drink water. If you don't reply, it escalates. Built for ADHD — hard to ignore, not easy to dismiss.
+A bot that messages you on a schedule to drink water. If you don't reply, it escalates. Built for ADHD — hard to ignore, not easy to dismiss.
+
+Supports two platforms — pick the one that works for you:
+
+| Platform | Pros | Cons |
+|---|---|---|
+| **Telegram** | Real push notifications, no extra hardware, simpler setup | Requires Telegram |
+| **WhatsApp** | Uses your existing WhatsApp | Messages arrive silently (no push notification in self-chat) |
 
 ---
 
 ## Requirements
 
 - Node.js 18+
-- A WhatsApp account (the bot messages *yourself*)
-- Chromium/Chrome available on your system (used by Puppeteer under the hood)
 
 ---
 
@@ -22,36 +27,84 @@ npm install
 
 ### 2. Configure `.env`
 
-Edit the `.env` file in the project root:
+Copy the example and edit:
 
-```
-MY_PHONE_NUMBER=+4917123456789      # Your number in international format
-REMINDER_INTERVAL_MINUTES=60        # How often to send reminders
-ESCALATE_AFTER_MINUTES=10           # Minutes before first escalation
-DAILY_GOAL_GLASSES=8                # Target glasses per day
-SUMMARY_TIME=20:00                  # When to send daily summary (24h)
-QUIET_HOURS_START=23:00             # No reminders after this time
-QUIET_HOURS_END=08:00               # No reminders before this time
-PUPPETEER_EXECUTABLE_PATH=          # Path to Chromium — leave blank on Mac/Windows, set on Linux/Raspberry Pi
+```bash
+cp .env.example .env
 ```
 
-`MY_PHONE_NUMBER` is the only required change — use full international format including the `+`.
+Set `PLATFORM` to either `telegram` or `whatsapp`, then fill in the relevant section below.
 
-On **Raspberry Pi / Linux**, set `PUPPETEER_EXECUTABLE_PATH` to the system Chromium so Puppeteer doesn't try to download its own:
+---
+
+## Platform setup
+
+### Telegram (recommended)
+
+Telegram sends real push notifications and requires no extra hardware or Puppeteer.
+
+**Step 1 — Create a bot**
+
+1. Open Telegram and message `@BotFather`
+2. Send `/newbot` and follow the prompts
+3. Copy the token it gives you
+
+**Step 2 — Configure `.env`**
 
 ```
-PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+PLATFORM=telegram
+TELEGRAM_BOT_TOKEN=123456:ABCdef...
+TELEGRAM_CHAT_ID=                   # leave blank for now
 ```
 
-### 3. Start the bot
+**Step 3 — Find your chat ID**
+
+Start the bot, then send any message to your bot on Telegram. It will reply:
+
+> Your chat ID is: 123456789
+> Set TELEGRAM_CHAT_ID=123456789 in .env and restart.
+
+Add that to `.env` and restart.
+
+---
+
+### WhatsApp
+
+> **Note:** WhatsApp does not send push notifications for messages in self-chat (Saved Messages). You will see the message when you open the app, but your phone will not buzz. If push notifications matter, use Telegram.
+
+Requires Chromium on your system (used by Puppeteer under the hood).
+
+**Configure `.env`**
+
+```
+PLATFORM=whatsapp
+MY_PHONE_NUMBER=+4917123456789
+PUPPETEER_EXECUTABLE_PATH=          # leave blank on Mac/Windows
+                                    # set to /usr/bin/chromium-browser on Raspberry Pi / Linux
+```
+
+**First run — scan QR code**
 
 ```bash
 node index.js
 ```
 
-On first run, a QR code prints in your terminal. Open WhatsApp on your phone → **Linked Devices** → **Link a Device** → scan the QR code.
+A QR code prints in the terminal. Open WhatsApp → **Linked Devices** → **Link a Device** → scan it. The session is saved to `.wwebjs_auth/` so you only need to scan once.
 
-The session is saved locally (`.wwebjs_auth/`) so you only need to scan once.
+---
+
+## Shared config
+
+These settings apply regardless of platform:
+
+```
+REMINDER_INTERVAL_MINUTES=60    # How often to send reminders
+ESCALATE_AFTER_MINUTES=10       # Wait before first escalation
+DAILY_GOAL_GLASSES=8            # Target glasses per day
+SUMMARY_TIME=20:00              # When to send daily summary (24h)
+QUIET_HOURS_START=23:00         # No reminders after this time
+QUIET_HOURS_END=08:00           # No reminders before this time
+```
 
 ---
 
@@ -73,15 +126,13 @@ Reply within 10 minutes and the cycle resets. If you don't:
 
 ### Daily summary
 
-At your configured `SUMMARY_TIME`, you'll get:
+At your configured `SUMMARY_TIME`:
 
 > 📊 Today: you logged 6 glasses. Goal was 8. 💪 solid effort.
 
 ---
 
 ## Commands
-
-Send any of these to the bot (your own number) at any time:
 
 | Message | What it does |
 |---|---|
@@ -99,7 +150,7 @@ Replies are case-insensitive and loosely matched — `ya`, `yep`, `drank it`, `h
 
 ## Running on a Raspberry Pi (24/7)
 
-A Raspberry Pi is ideal for running the bot continuously at low power. Pi 3 or 4 recommended (1GB+ RAM for Puppeteer).
+A Raspberry Pi is ideal for running the bot continuously at low power. Pi 3 or 4 recommended (1GB+ RAM if using WhatsApp/Puppeteer; any model works for Telegram).
 
 ### 1. Install Node.js
 
@@ -108,11 +159,13 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
-### 2. Install Chromium
+### 2. Install Chromium (WhatsApp only)
 
 ```bash
 sudo apt install -y chromium-browser
 ```
+
+Skip this step if using Telegram.
 
 ### 3. Clone and configure
 
@@ -121,7 +174,7 @@ git clone https://github.com/you/your-repo.git
 cd your-repo
 npm install
 cp .env.example .env
-nano .env   # fill in your phone number and set PUPPETEER_EXECUTABLE_PATH
+nano .env
 ```
 
 ### 4. Set the correct timezone
@@ -132,15 +185,7 @@ Quiet hours and the daily summary use local system time:
 sudo raspi-config   # → Localisation → Timezone
 ```
 
-### 5. Scan the QR code once
-
-```bash
-node index.js
-```
-
-Scan with your phone. The session is saved and won't need re-scanning unless it expires.
-
-### 6. Keep it running with pm2
+### 5. Keep it running with pm2
 
 ```bash
 sudo npm install -g pm2
@@ -157,13 +202,9 @@ pm2 restart water-bot
 pm2 stop water-bot
 ```
 
-> **Session expiry:** if your phone has no internet for an extended period, WhatsApp may terminate the linked device session. SSH into the Pi and run `node index.js` briefly to re-scan the QR code.
-
 ---
 
 ## Running persistently on Mac/Windows (optional)
-
-Use pm2 the same way — just skip the Chromium install and leave `PUPPETEER_EXECUTABLE_PATH` blank:
 
 ```bash
 npm install -g pm2
@@ -178,5 +219,6 @@ pm2 startup
 
 - Escalation state is in-memory — restarting the bot resets any pending escalation timers.
 - Daily intake data persists in `data/intake.json` and resets automatically at midnight.
-- The bot only responds to messages from your own number; all other messages are ignored.
-- `.env` and `data/intake.json` are gitignored to keep your number and data private.
+- The bot only responds to messages from your configured account; all other messages are ignored.
+- `.env` and `data/intake.json` are gitignored to keep your credentials and data private.
+- **WhatsApp session expiry:** if your phone has no internet for an extended period, WhatsApp may terminate the linked device session. SSH into the Pi and run `node index.js` briefly to re-scan.

@@ -35,11 +35,13 @@ function isQuietHours() {
 }
 
 function startReminder() {
-  if (isQuietHours()) return;
-  if (tracker.isPaused()) return;
+  console.log(`[scheduler] reminder tick at ${new Date().toISOString()}`);
+  if (isQuietHours()) { console.log('[scheduler] quiet hours — skipping'); return; }
+  if (tracker.isPaused()) { console.log('[scheduler] paused — skipping'); return; }
 
   send('💧 Water check — have you drunk water in the last hour? Reply *yes* or *skip*');
   escalation.startCycle();
+  console.log('[scheduler] reminder sent');
 }
 
 function startDailySummary() {
