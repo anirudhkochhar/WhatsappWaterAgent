@@ -49,7 +49,7 @@ function init() {
       if (_onMessage) await _onMessage(ctx.message.text);
     });
 
-    bot.launch()
+    bot.launch({ dropPendingUpdates: true })
       .then(() => {
         console.log('[telegram] Bot connected.');
         resolve({ send });
