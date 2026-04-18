@@ -8,7 +8,7 @@ const YES_WORDS = ['yes', 'y', 'ya', 'yep', 'yup', 'yeah', 'drank', 'done', 'dra
 const SKIP_WORDS = ['skip', 'nah', 'no', 'nope', 'not now', 'later', 'pass'];
 
 function normalize(text) {
-  return text.trim().toLowerCase().replace(/[^a-z0-9 ]/g, '');
+  return text.trim().toLowerCase().replace(/[^a-z0-9 .]/g, '');
 }
 
 function isYes(text) {
@@ -21,16 +21,21 @@ function isSkip(text) {
   return SKIP_WORDS.some(w => n === w || n.startsWith(w + ' '));
 }
 
-function ratingEmoji(glasses, goal) {
-  const ratio = glasses / goal;
+function ratingEmoji(liters, goal) {
+  const ratio = liters / goal;
   if (ratio >= 1) return '🏆 crushed it';
   if (ratio >= 0.75) return '💪 solid effort';
   if (ratio >= 0.5) return '😐 halfway there';
   return '😬 rough day';
 }
 
-// Returns reply text or null if the message is not from the owner / not recognized
-async function handle(messageText, send) {
+// Remove trailing zeros from a rounded float: 1.00 → 1, 0.50 → 0.5, 0.25 → 0.25
+function fmt(n) {
+  return parseFloat(n.toFixed(2));
+}
+
+// Returns reply text or null if the message is not recognized
+async function handle(messageText) {
   const raw = messageText.trim();
   const lower = raw.toLowerCase();
 
@@ -38,7 +43,8 @@ async function handle(messageText, send) {
   if (isYes(raw)) {
     escalation.cancelCycle();
     const data = tracker.logDrink();
-    return `💧 logged! that's ${data.glasses} glass${data.glasses !== 1 ? 'es' : ''} today (goal: ${data.goal}). keep it up.`;
+    const amt = tracker.drinkSizeL();
+    return `💧 logged ${fmt(amt)}L! that's ${fmt(data.liters)}/${fmt(data.goal)}L today. keep it up.`;
   }
 
   // --- skip ---
@@ -51,17 +57,17 @@ async function handle(messageText, send) {
   // --- status ---
   if (lower === 'status') {
     const data = tracker.getStatus();
-    const pct = Math.round((data.glasses / data.goal) * 100);
-    return `📊 today: ${data.glasses}/${data.goal} glasses (${pct}%). skips: ${data.skips}.`;
+    const pct = Math.round((data.liters / data.goal) * 100);
+    return `📊 today: ${fmt(data.liters)}/${fmt(data.goal)}L (${pct}%). skips: ${data.skips}.`;
   }
 
   // --- goal N ---
-  const goalMatch = lower.match(/^goal\s+(\d+)$/);
+  const goalMatch = lower.match(/^goal\s+(\d+(?:\.\d+)?)$/);
   if (goalMatch) {
-    const g = parseInt(goalMatch[1], 10);
-    if (g < 1 || g > 30) return 'goal must be between 1 and 30 glasses.';
+    const g = parseFloat(goalMatch[1]);
+    if (g < 0.5 || g > 10) return 'goal must be between 0.5 and 10 liters.';
     tracker.setGoal(g);
-    return `goal updated to ${g} glasses per day. 💪`;
+    return `goal updated to ${fmt(g)}L per day. 💪`;
   }
 
   // --- stop ---
@@ -82,10 +88,10 @@ async function handle(messageText, send) {
   if (lower === 'help') {
     return [
       '*Water Bot commands:*',
-      '`yes` / `drank` / `done` — log a glass',
+      '`yes` / `drank` / `done` — log a drink',
       '`skip` — skip this reminder',
-      '`status` — today\'s count vs goal',
-      '`goal 8` — set daily goal',
+      '`status` — today\'s intake vs goal',
+      '`goal 2.0` — set daily goal in liters',
       '`stop` — pause reminders for 2 hours',
       '`resume` — resume reminders early',
       '`help` — this list',
@@ -95,4 +101,4 @@ async function handle(messageText, send) {
   return null; // unrecognized
 }
 
-module.exports = { handle, ratingEmoji };
+module.exports = { handle, ratingEmoji, fmt };

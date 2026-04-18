@@ -28,7 +28,7 @@ async function main() {
   // Startup confirmation message
   const data = tracker.getStatus();
   await platform.send(
-    `✅ Water bot started (${PLATFORM}). Reminders every ${process.env.REMINDER_INTERVAL_MINUTES || 60} min. Today: ${data.glasses}/${data.goal} glasses so far.`
+    `✅ Water bot started (${PLATFORM}). Reminders every ${process.env.REMINDER_INTERVAL_MINUTES || 60} min. Today: ${data.liters}/${data.goal}L so far.`
   );
 
   console.log('[boot] Ready.');

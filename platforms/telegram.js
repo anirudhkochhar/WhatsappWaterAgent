@@ -49,12 +49,16 @@ function init() {
       if (_onMessage) await _onMessage(ctx.message.text);
     });
 
-    bot.launch({ dropPendingUpdates: true })
-      .then(() => {
+    // Second arg is the onLaunch callback — fires when the bot connects,
+    // before startPolling() blocks. Using .then() is wrong because
+    // bot.launch() only resolves when the bot *stops*, not when it starts.
+    bot.launch(
+      { dropPendingUpdates: true },
+      () => {
         console.log('[telegram] Bot connected.');
         resolve({ send });
-      })
-      .catch(reject);
+      }
+    ).catch(reject);
 
     // Graceful shutdown
     process.once('SIGINT', () => bot.stop('SIGINT'));
