@@ -1,5 +1,7 @@
 'use strict';
 
+const llm = require('./llm');
+
 // Escalation state machine.
 // State resets on each new reminder cycle (in-memory only; resets on restart).
 
@@ -36,13 +38,16 @@ function startCycle() {
   const t1 = setTimeout(async () => {
     if (!state.active) return;
     state.level = 1;
-    await send('hey. water. now.');
+    const msg1 = await llm.generateMessage('escalation', { level: 1 }) || 'hey. water. now.';
+    await send(msg1);
 
     // Level 2: aggressive nudge after another ESCALATE_AFTER_MINUTES
     const t2 = setTimeout(async () => {
       if (!state.active) return;
       state.level = 2;
-      await send('you have been ignoring me for 20 minutes. drink water or i will keep texting you.');
+      const msg2 = await llm.generateMessage('escalation', { level: 2 })
+        || 'you have been ignoring me for 20 minutes. drink water or i will keep texting you.';
+      await send(msg2);
 
       // Level 3+: repeat every 5 minutes until reply
       function nag() {

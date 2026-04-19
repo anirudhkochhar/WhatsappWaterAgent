@@ -4,6 +4,7 @@ const cron = require('node-cron');
 const tracker = require('./tracker');
 const escalation = require('./escalation');
 const { ratingEmoji, fmt } = require('./handler');
+const llm = require('./llm');
 
 let _sendFn = null;
 
@@ -63,21 +64,27 @@ function isAheadOfPace(now = new Date()) {
   return data.liters >= expectedLiters;
 }
 
-function startReminder() {
+async function startReminder() {
   console.log(`[scheduler] reminder tick at ${new Date().toISOString()}`);
   if (isQuietHours()) { console.log('[scheduler] quiet hours — skipping'); return; }
   if (tracker.isPaused()) { console.log('[scheduler] paused — skipping'); return; }
   if (isAheadOfPace()) { console.log('[scheduler] ahead of pace — skipping'); return; }
 
-  send('💧 Water check — have you had water in the last hour? Reply *yes* or *skip*');
+  const data = tracker.getStatus();
+  const msg = await llm.generateMessage('reminder', { liters: data.liters, goal: data.goal })
+    || '💧 Water check — have you had water in the last hour? Reply *yes* or *skip*';
+
+  send(msg);
   escalation.startCycle();
   console.log('[scheduler] reminder sent');
 }
 
-function startDailySummary() {
+async function startDailySummary() {
   const data = tracker.getStatus();
   const rating = ratingEmoji(data.liters, data.goal);
-  send(`📊 Today: you logged ${fmt(data.liters)}L. Goal was ${fmt(data.goal)}L. ${rating}.`);
+  const msg = await llm.generateMessage('summary', { liters: data.liters, goal: data.goal, rating })
+    || `📊 Today: you logged ${fmt(data.liters)}L. Goal was ${fmt(data.goal)}L. ${rating}.`;
+  send(msg);
 }
 
 function init(sendFn) {

@@ -100,11 +100,35 @@ These settings apply regardless of platform:
 ```
 REMINDER_INTERVAL_MINUTES=60    # How often to send reminders
 ESCALATE_AFTER_MINUTES=10       # Wait before first escalation
-DAILY_GOAL_GLASSES=8            # Target glasses per day
+DAILY_GOAL_LITERS=2.0           # Daily water target in liters
+DRINK_SIZE_ML=250               # How many ml each "yes" logs
 SUMMARY_TIME=20:00              # When to send daily summary (24h)
 QUIET_HOURS_START=23:00         # No reminders after this time
 QUIET_HOURS_END=08:00           # No reminders before this time
 ```
+
+---
+
+## LLM integration (optional)
+
+The bot can use Claude Haiku to understand natural language replies and generate varied reminder messages. Without an API key it falls back to keyword matching and fixed message strings — the bot works identically either way.
+
+**What it improves:**
+- Intent parsing understands freeform replies: *"had some with my meds"*, *"drinking rn"*, *"does coffee count?"* — not just `yes`/`skip`
+- Reminder messages are generated fresh each time instead of the same fixed string
+- Escalation and summary messages vary in tone
+
+**Setup:**
+
+1. Get an API key from [console.anthropic.com](https://console.anthropic.com)
+2. Add to `.env`:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+LLM_MODEL=claude-3-haiku-20240307   # or claude-haiku-4-5-20251001 for latest
+```
+
+At typical usage (~12 reminders/day), expect under **$0.05/month** on Haiku 3. The bot falls back to keyword matching if the API is unreachable or times out.
 
 ---
 
@@ -128,7 +152,7 @@ Reply within 10 minutes and the cycle resets. If you don't:
 
 At your configured `SUMMARY_TIME`:
 
-> 📊 Today: you logged 6 glasses. Goal was 8. 💪 solid effort.
+> 📊 Today: you logged 1.5L. Goal was 2L. 💪 solid effort.
 
 ---
 
@@ -136,10 +160,10 @@ At your configured `SUMMARY_TIME`:
 
 | Message | What it does |
 |---|---|
-| `yes` / `drank` / `done` | Log one glass, cancel escalation |
+| `yes` / `drank` / `done` | Log one drink, cancel escalation |
 | `skip` | Acknowledge without logging, cancel escalation |
-| `status` | Show today's count vs goal |
-| `goal 8` | Set daily glass goal to 8 |
+| `status` | Show today's intake vs goal |
+| `goal 2.5` | Set daily goal to 2.5 liters |
 | `stop` | Pause reminders for 2 hours |
 | `resume` | Resume reminders early |
 | `help` | List all commands |
